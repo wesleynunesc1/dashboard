@@ -3,27 +3,29 @@ import { create } from 'zustand';
 import { MarketSnapshot } from '@/types/market';
 import { marketService } from '@/services/MockMarketDataProvider';
 
+export type MobileTab = 'dolar' | 'indice' | 'mercado' | 'fluxo';
+
 interface MarketStoreState {
   snapshot: MarketSnapshot | null;
-  activeTab: 'dolar' | 'center' | 'indice' | 'all';
+  mobileTab: MobileTab;
   isPaused: boolean;
   setSnapshot: (snapshot: MarketSnapshot) => void;
-  setActiveTab: (tab: 'dolar' | 'center' | 'indice' | 'all') => void;
+  setMobileTab: (tab: MobileTab) => void;
   togglePause: () => void;
   resetSimulation: () => void;
 }
 
 export const useMarketStore = create<MarketStoreState>((set, get) => ({
   snapshot: null,
-  activeTab: 'all',
+  mobileTab: 'dolar',
   isPaused: false,
 
   setSnapshot: (snapshot: MarketSnapshot) => {
     set({ snapshot, isPaused: snapshot.isPaused });
   },
 
-  setActiveTab: (activeTab) => {
-    set({ activeTab });
+  setMobileTab: (mobileTab: MobileTab) => {
+    set({ mobileTab });
   },
 
   togglePause: () => {

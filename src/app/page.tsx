@@ -7,9 +7,14 @@ import { Header } from '@/components/dashboard/Header';
 import { DolarColumn } from '@/components/dashboard/DolarColumn';
 import { CenterColumn } from '@/components/dashboard/CenterColumn';
 import { IndiceColumn } from '@/components/dashboard/IndiceColumn';
+import { MobileNavBar } from '@/components/dashboard/MobileNavBar';
+import { MobileDolarView } from '@/components/dashboard/MobileDolarView';
+import { MobileIndiceView } from '@/components/dashboard/MobileIndiceView';
+import { MobileMercadoView } from '@/components/dashboard/MobileMercadoView';
+import { MobileFluxoView } from '@/components/dashboard/MobileFluxoView';
 
 export default function Home() {
-  const { snapshot, setSnapshot, activeTab } = useMarketStore();
+  const { snapshot, setSnapshot, mobileTab } = useMarketStore();
 
   useEffect(() => {
     // Conectar ao MarketDataProvider
@@ -42,48 +47,55 @@ export default function Home() {
       {/* HEADER DO TERMINAL */}
       <Header />
 
-      {/* ÁREA PRINCIPAL DAS 3 COLUNAS */}
-      <main className="flex-1 w-full max-w-[1920px] mx-auto p-1.5 overflow-x-hidden">
-        {/* Layout Desktop Otimizado em 3 Colunas (12 colunas grid: 5 col / 2 col / 5 col) */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-1.5">
+      {/* ÁREA PRINCIPAL */}
+      <main className="flex-1 w-full max-w-[1920px] mx-auto p-1.5 sm:p-2 overflow-x-hidden">
+        {/* ============================================================== */}
+        {/* DESKTOP LAYOUT (>= 1280px / xl) — 100% PRESERVADO INTACTO     */}
+        {/* ============================================================== */}
+        <div className="hidden xl:grid xl:grid-cols-12 gap-1.5">
           {/* COLUNA ESQUERDA — DÓLAR FUTURO (WDOFUT) */}
-          <section
-            className={`xl:col-span-5 ${
-              activeTab === 'all' || activeTab === 'dolar' ? 'block' : 'hidden xl:block'
-            }`}
-          >
+          <section className="xl:col-span-5">
             <DolarColumn data={snapshot.dolar} />
           </section>
 
           {/* COLUNA CENTRAL — INDICADORES AUXILIARES (JUROS DI, TENDÊNCIA, PTAX) */}
-          <section
-            className={`xl:col-span-2 ${
-              activeTab === 'all' || activeTab === 'center' ? 'block' : 'hidden xl:block'
-            }`}
-          >
+          <section className="xl:col-span-2">
             <CenterColumn data={snapshot.center} />
           </section>
 
           {/* COLUNA DIREITA — ÍNDICE FUTURO (WINFUT) */}
-          <section
-            className={`xl:col-span-5 ${
-              activeTab === 'all' || activeTab === 'indice' ? 'block' : 'hidden xl:block'
-            }`}
-          >
+          <section className="xl:col-span-5">
             <IndiceColumn data={snapshot.indice} />
           </section>
         </div>
+
+        {/* ============================================================== */}
+        {/* MOBILE & TABLET LAYOUT (< 1280px / xl) — NAVEGAÇÃO PROFISSIONAL */}
+        {/* ============================================================== */}
+        <div className="block xl:hidden">
+          {mobileTab === 'dolar' && <MobileDolarView data={snapshot.dolar} />}
+          {mobileTab === 'indice' && <MobileIndiceView data={snapshot.indice} />}
+          {mobileTab === 'mercado' && (
+            <MobileMercadoView center={snapshot.center} indice={snapshot.indice} />
+          )}
+          {mobileTab === 'fluxo' && (
+            <MobileFluxoView dolar={snapshot.dolar} indice={snapshot.indice} />
+          )}
+        </div>
       </main>
 
-      {/* FOOTER INFORMATIVO DO TERMINAL */}
-      <footer className="h-6 bg-[#0C1626] border-t border-[#1D3048] px-3 flex items-center justify-between text-[9px] font-mono text-[#8191A8] select-none">
+      {/* BARRA DE NAVEGAÇÃO INFERIOR FIXA PARA DISPOSITIVOS MÓVEIS */}
+      <MobileNavBar />
+
+      {/* FOOTER INFORMATIVO DESKTOP */}
+      <footer className="hidden xl:flex h-6 bg-[#0C1626] border-t border-[#1D3048] px-3 items-center justify-between text-[9px] font-mono text-[#8191A8] select-none">
         <div className="flex items-center space-x-3">
           <span>LATÊNCIA: &lt; 12ms</span>
           <span>FEED: B3 RTD/FAST</span>
           <span>ARQUITETURA: NEXT.JS + TAILWIND + ECHARTS + ZUSTAND</span>
         </div>
         <div>
-          <span>FASE 01 CONCLUÍDA — PRONTO PARA INTEGRAÇÃO COM EXCEL / PYTHON NA FASE 02</span>
+          <span>FASE 01.1 MOBILE CONCLUÍDA — PRONTO PARA INTEGRAÇÃO COM EXCEL / PYTHON NA FASE 02</span>
         </div>
       </footer>
     </div>
