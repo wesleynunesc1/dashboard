@@ -102,7 +102,7 @@ export const CumulativeFlowChart: React.FC<Props> = ({
           data: ban,
           smooth: true,
           showSymbol: false,
-          lineStyle: { color: '#42A5F5', width: 1 },
+          lineStyle: { color: '#60CDFF', width: 1 },
         },
         {
           name: 'Pessoa Física',

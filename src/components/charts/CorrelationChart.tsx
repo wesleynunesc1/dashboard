@@ -74,7 +74,7 @@ export const CorrelationChart: React.FC<Props> = ({ data, height = 75 }) => {
           data: ewz,
           smooth: true,
           showSymbol: false,
-          lineStyle: { color: '#42A5F5', width: 1.5 },
+          lineStyle: { color: '#60CDFF', width: 1.5 },
         },
         {
           name: 'Índice × Dólar',

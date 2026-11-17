@@ -40,7 +40,7 @@ export const MobileFluxoView: React.FC<Props> = ({ dolar, indice }) => {
 
           {/* Índice */}
           <div className="flex flex-col items-center bg-[#070D17] p-2 rounded border border-[#1D3048]/50">
-            <div className="text-[9px] font-bold text-[#42A5F5] mb-1">ÍNDICE — WINFUT</div>
+            <div className="text-[9px] font-bold text-[#60CDFF] mb-1">ÍNDICE — WINFUT</div>
             <SemiCircleGauge
               score={indice.aggression.score}
               label={indice.aggression.state}
@@ -132,7 +132,7 @@ export const MobileFluxoView: React.FC<Props> = ({ dolar, indice }) => {
 
           {/* Índice */}
           <div className="pt-1 border-t border-[#1D3048]/30">
-            <span className="text-[8px] text-[#42A5F5] font-bold block mb-0.5">ÍNDICE (WINFUT)</span>
+            <span className="text-[8px] text-[#60CDFF] font-bold block mb-0.5">ÍNDICE (WINFUT)</span>
             <div className="grid grid-cols-3 gap-1">
               {indice.dailyFlow.map((p) => (
                 <div key={p.name} className="bg-[#070D17] p-1 rounded border border-[#1D3048]/40">
@@ -170,7 +170,7 @@ export const MobileFluxoView: React.FC<Props> = ({ dolar, indice }) => {
 
           {/* Índice */}
           <div>
-            <span className="text-[#42A5F5] font-bold block pb-0.5 border-b border-[#1D3048]/30">ÍNDICE</span>
+            <span className="text-[#60CDFF] font-bold block pb-0.5 border-b border-[#1D3048]/30">ÍNDICE</span>
             <div className="space-y-0.5 mt-1">
               {indice.players.slice(0, 4).map((p) => (
                 <div key={p.id} className="flex justify-between">

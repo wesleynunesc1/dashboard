@@ -97,7 +97,7 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
                 <div key={item.name} className="flex items-center justify-between">
                   <div className="flex items-center space-x-1.5">
                     <span className={`w-1.5 h-1.5 rounded-full ${
-                      item.type === 'estrangeiro' ? 'bg-[#21D787]' : item.type === 'bancos' ? 'bg-[#42A5F5]' : 'bg-[#FF4D5A]'
+                      item.type === 'estrangeiro' ? 'bg-[#21D787]' : item.type === 'bancos' ? 'bg-[#60CDFF]' : 'bg-[#FF4D5A]'
                     }`} />
                     <span className="text-[10px] text-[#8191A8] font-sans">{item.name}</span>
                   </div>
@@ -139,7 +139,7 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
             <CumulativeFlowChart data={cumulativeFlow} height={85} />
             <div className="flex items-center justify-between text-[8px] text-[#8191A8] px-1 mt-0.5 pt-0.5 border-t border-[#1D3048]/40">
               <span className="flex items-center gap-1"><span className="w-1.5 h-1 bg-[#21D787]" /> Estrangeiro</span>
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1 bg-[#42A5F5]" /> Bancos</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1 bg-[#60CDFF]" /> Bancos</span>
               <span className="flex items-center gap-1"><span className="w-1.5 h-1 bg-[#FF4D5A]" /> Pessoa Física</span>
             </div>
           </div>
@@ -319,13 +319,13 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
           <div className="flex items-center justify-between pb-1 border-b border-[#1D3048]/50 mb-0.5">
             <span className="text-[9px] font-bold text-[#8191A8] uppercase">CORRELAÇÃO</span>
             <div className="flex items-center space-x-1 text-[8px] font-mono">
-              <span className="text-[#42A5F5]">EWZ</span>
+              <span className="text-[#60CDFF]">EWZ</span>
               <span className="text-[#FF4D5A]">DOL</span>
             </div>
           </div>
           <CorrelationChart data={correlation} height={60} />
           <div className="flex items-center justify-between text-[8px] font-mono pt-1 border-t border-[#1D3048]/40">
-            <span className="text-[#42A5F5]">Índice × EWZ: {correlationCurrent.indiceEwz.toFixed(2)}</span>
+            <span className="text-[#60CDFF]">Índice × EWZ: {correlationCurrent.indiceEwz.toFixed(2)}</span>
             <span className="text-[#FF4D5A]">Índice × Dólar: {correlationCurrent.indiceDolar.toFixed(2)}</span>
           </div>
         </div>

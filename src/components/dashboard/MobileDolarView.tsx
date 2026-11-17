@@ -105,7 +105,7 @@ export const MobileDolarView: React.FC<Props> = ({ data }) => {
 
         <div className="flex items-center justify-between text-[8px] text-[#8191A8] px-1 pt-1 border-t border-[#1D3048]/40">
           <span className="flex items-center gap-1"><span className="w-1.5 h-1 bg-[#21D787]" /> Estrangeiro</span>
-          <span className="flex items-center gap-1"><span className="w-1.5 h-1 bg-[#42A5F5]" /> Bancos</span>
+          <span className="flex items-center gap-1"><span className="w-1.5 h-1 bg-[#60CDFF]" /> Bancos</span>
           <span className="flex items-center gap-1"><span className="w-1.5 h-1 bg-[#FF4D5A]" /> Pessoa Física</span>
         </div>
 
