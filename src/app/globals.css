@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+:root {
+  --background: #070D17;
+  --foreground: #F0F4FA;
+  --card-bg: #0C1626;
+  --border-color: #1D3048;
+  --buy-green: #21D787;
+  --sell-red: #FF4D5A;
+  --accent-yellow: #F3C65A;
+  --info-blue: #42A5F5;
+  --text-muted: #8191A8;
+}
+
+body {
+  background-color: #070D17;
+  color: #F0F4FA;
+  font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Scrollbars customizadas finas estilo terminal financeiro */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: #070D17;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1D3048;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8191A8;
+}
