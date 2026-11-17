@@ -58,12 +58,12 @@ export default function Home() {
             <DolarColumn data={snapshot.dolar} />
           </section>
 
-          {/* COLUNA CENTRAL — INDICADORES AUXILIARES (JUROS DI, TENDÊNCIA, PTAX) */}
+          {/* COLUNA CENTRAL — INDICADORES AUXILIARES (JUROS DI, TENDÊNCIA, PTAX, MARCADOR DI PP) */}
           <section className="xl:col-span-2">
-            <CenterColumn data={snapshot.center} />
+            <CenterColumn data={snapshot.center} diVarPoints={snapshot.indice.diVarPoints} />
           </section>
 
-          {/* COLUNA DIREITA — ÍNDICE FUTURO (WINFUT) */}
+          {/* COLUNA DIREITA — ÍNDICE FUTURO (WINZ26 / WINFUT COM CORRELAÇÃO, TOP 10 E BOOK TOP 15) */}
           <section className="xl:col-span-5">
             <IndiceColumn data={snapshot.indice} />
           </section>
@@ -92,10 +92,11 @@ export default function Home() {
         <div className="flex items-center space-x-3">
           <span>LATÊNCIA: &lt; 12ms</span>
           <span>FEED: B3 RTD/FAST</span>
-          <span>ARQUITETURA: NEXT.JS + TAILWIND + ECHARTS + ZUSTAND</span>
+          <span>CONTRATO ATIVO: WINZ26 | WDOF27</span>
+          <span>BOOK: TOP 15 PROFUNDIDADE</span>
         </div>
         <div>
-          <span>FASE 01.1 MOBILE CONCLUÍDA — PRONTO PARA INTEGRAÇÃO COM EXCEL / PYTHON NA FASE 02</span>
+          <span>FASE 01 CONCLUÍDA — PRONTO PARA INTEGRAÇÃO COM EXCEL / PYTHON NA FASE 02</span>
         </div>
       </footer>
     </div>

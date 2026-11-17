@@ -1,6 +1,6 @@
 // src/services/MockMarketDataProvider.ts
 import { MarketDataProvider } from './MarketDataProvider';
-import { MarketSnapshot, CumulativeFlowPoint, CorrelationPoint } from '@/types/market';
+import { MarketSnapshot, CumulativeFlowPoint, CorrelationPoint, OrderBookLevel } from '@/types/market';
 
 export class MockMarketDataProvider implements MarketDataProvider {
   private listeners: Set<(snapshot: MarketSnapshot) => void> = new Set();
@@ -41,6 +41,20 @@ export class MockMarketDataProvider implements MarketDataProvider {
       { time: '11:15', indiceEwz: 0.94, indiceDolar: -0.65 },
       { time: '11:30', indiceEwz: 0.86, indiceDolar: -0.53 },
     ];
+
+    // Book Top 15 níveis de compra
+    const buyLevels15: OrderBookLevel[] = Array.from({ length: 15 }, (_, i) => ({
+      price: 173820 - i * 5,
+      volume: Math.round(300 + Math.random() * 1400 + i * 50),
+      isBuy: true,
+    }));
+
+    // Book Top 15 níveis de venda
+    const sellLevels15: OrderBookLevel[] = Array.from({ length: 15 }, (_, i) => ({
+      price: 173825 + i * 5,
+      volume: Math.round(320 + Math.random() * 1500 + i * 60),
+      isBuy: false,
+    }));
 
     return {
       timestamp: Date.now(),
@@ -144,8 +158,8 @@ export class MockMarketDataProvider implements MarketDataProvider {
       indice: {
         quote: {
           symbol: 'ÍNDICE',
-          ticker: 'WINFUT',
-          name: 'Ibovespa Mini Futuro',
+          ticker: 'WINZ26', // Contrato atual WINZ26 / WINFUT
+          name: 'Ibovespa Mini Futuro WINZ26',
           price: 173820,
           variationPoints: 1037,
           variationPercent: 0.60,
@@ -168,7 +182,7 @@ export class MockMarketDataProvider implements MarketDataProvider {
           realtimeBalance: 68000,
           spotSymbol: 'INDFUT',
           spotPrice: 173800,
-          futSymbol: 'WINFUT',
+          futSymbol: 'WINZ26',
           futPrice: 173820,
         },
         flowDelta: [
@@ -244,20 +258,8 @@ export class MockMarketDataProvider implements MarketDataProvider {
         orderBook: {
           spread: 5,
           imbalancePercent: 52,
-          buyLevels: [
-            { price: 173820, volume: 450, isBuy: true },
-            { price: 173815, volume: 620, isBuy: true },
-            { price: 173810, volume: 890, isBuy: true },
-            { price: 173805, volume: 1100, isBuy: true },
-            { price: 173800, volume: 1540, isBuy: true },
-          ],
-          sellLevels: [
-            { price: 173825, volume: 380, isBuy: false },
-            { price: 173830, volume: 710, isBuy: false },
-            { price: 173835, volume: 920, isBuy: false },
-            { price: 173840, volume: 1250, isBuy: false },
-            { price: 173845, volume: 1680, isBuy: false },
-          ],
+          buyLevels: buyLevels15,
+          sellLevels: sellLevels15,
         },
       },
     };
@@ -319,15 +321,12 @@ export class MockMarketDataProvider implements MarketDataProvider {
     this.tickCount++;
     const snap = this.currentSnapshot;
 
-    // Simulação coerente e determinística de micro oscilações
-    // Math.sin / cos para oscilações realistas
     const dPriceNoise = (Math.sin(this.tickCount * 0.3) * 0.5 + (Math.random() - 0.5) * 0.2);
-    const roundedDolarNoise = Math.round(dPriceNoise * 2) / 2; // Dólar varia de 0.5 em 0.5
+    const roundedDolarNoise = Math.round(dPriceNoise * 2) / 2;
     const newDolarPrice = +(snap.dolar.quote.price + roundedDolarNoise).toFixed(1);
     const newDolarPts = +(snap.dolar.quote.variationPoints + roundedDolarNoise).toFixed(1);
     const newDolarPct = +((newDolarPts / 5660) * 100).toFixed(2);
 
-    // Índice varia em múltiplos de 5
     const iPriceNoise = Math.round((Math.cos(this.tickCount * 0.25) * 15 + (Math.random() - 0.5) * 10) / 5) * 5;
     const newIndicePrice = snap.indice.quote.price + iPriceNoise;
     const newIndicePts = snap.indice.quote.variationPoints + iPriceNoise;
@@ -336,11 +335,22 @@ export class MockMarketDataProvider implements MarketDataProvider {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
 
-    // Leves atualizações no saldo e agressão
     const dolarBalanceDelta = Math.round((Math.random() - 0.48) * 120);
     const indiceBalanceDelta = Math.round((Math.random() - 0.46) * 250);
 
-    // Dólar
+    // Book Top 15 dinâmico
+    const updatedBuy15 = snap.indice.orderBook.buyLevels.map((l, idx) => ({
+      price: newIndicePrice - idx * 5,
+      volume: Math.max(100, l.volume + Math.round((Math.random() - 0.48) * 50)),
+      isBuy: true,
+    }));
+
+    const updatedSell15 = snap.indice.orderBook.sellLevels.map((l, idx) => ({
+      price: newIndicePrice + 5 + idx * 5,
+      volume: Math.max(100, l.volume + Math.round((Math.random() - 0.48) * 50)),
+      isBuy: false,
+    }));
+
     const updatedDolar = {
       ...snap.dolar,
       quote: {
@@ -366,7 +376,6 @@ export class MockMarketDataProvider implements MarketDataProvider {
       },
     };
 
-    // Índice
     const updatedIndice = {
       ...snap.indice,
       quote: {
@@ -390,6 +399,11 @@ export class MockMarketDataProvider implements MarketDataProvider {
         value: snap.indice.aggression.value + indiceBalanceDelta,
         score: Math.min(95, Math.max(-95, snap.indice.aggression.score + Math.round((Math.random() - 0.5) * 6))),
       },
+      orderBook: {
+        ...snap.indice.orderBook,
+        buyLevels: updatedBuy15,
+        sellLevels: updatedSell15,
+      },
     };
 
     this.currentSnapshot = {
@@ -409,5 +423,4 @@ export class MockMarketDataProvider implements MarketDataProvider {
   }
 }
 
-// Instância singleton do serviço de dados
 export const marketService: MarketDataProvider = new MockMarketDataProvider();

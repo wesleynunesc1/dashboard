@@ -8,9 +8,10 @@ import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
 interface Props {
   data: MarketSnapshot['center'];
+  diVarPoints?: MarketSnapshot['indice']['diVarPoints'];
 }
 
-export const CenterColumn: React.FC<Props> = ({ data }) => {
+export const CenterColumn: React.FC<Props> = ({ data, diVarPoints }) => {
   const { diContracts, diTrendScore, ptax, ptaxFut } = data;
 
   return (
@@ -82,6 +83,30 @@ export const CenterColumn: React.FC<Props> = ({ data }) => {
           />
         </div>
       </div>
+
+      {/* MARCADOR JUROS DI (VARIAÇÃO EM PONTOS PERCENTUAIS) */}
+      {diVarPoints && diVarPoints.length > 0 && (
+        <div className="bg-[#0C1626] border border-[#1D3048] p-1.5 rounded-sm">
+          <div className="flex items-center justify-between pb-0.5 border-b border-[#1D3048]/50 mb-1">
+            <span className="text-[8px] font-bold text-[#8191A8] uppercase">JUROS DI (VAR PP)</span>
+            <span className="text-[7.5px] font-mono text-[#8191A8]">AJUSTE</span>
+          </div>
+          <div className="grid grid-cols-2 gap-1 text-[7.5px] font-mono">
+            {diVarPoints.map((p) => {
+              const isPos = p.varPp > 0;
+              const isNeg = p.varPp < 0;
+              return (
+                <div key={p.code} className="flex justify-between items-center bg-[#070D17] px-1 py-0.5 rounded border border-[#1D3048]/30">
+                  <span className="text-[#8191A8]">{p.code}</span>
+                  <span className={isPos ? 'text-[#21D787]' : isNeg ? 'text-[#FF4D5A]' : 'text-[#8191A8]'}>
+                    {p.varPp === 0 ? '0.00' : formatSignedNumberBR(p.varPp, 2)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* PTAX SPOT */}
       <div className="bg-[#0C1626] border border-[#1D3048] p-2 rounded-sm">

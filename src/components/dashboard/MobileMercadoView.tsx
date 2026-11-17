@@ -14,7 +14,11 @@ interface Props {
 
 export const MobileMercadoView: React.FC<Props> = ({ center, indice }) => {
   const { diContracts, diTrendScore, ptax, ptaxFut } = center;
-  const { top10Ibov, top10Summary, correlation, correlationCurrent, diVarPoints, orderBook } = indice;
+  const { top10Ibov, top10Summary, correlation, correlationCurrent, diVarPoints, orderBook, quote } = indice;
+
+  const maxBuyVol = Math.max(...orderBook.buyLevels.map((l) => l.volume), 1);
+  const maxSellVol = Math.max(...orderBook.sellLevels.map((l) => l.volume), 1);
+  const maxBookVol = Math.max(maxBuyVol, maxSellVol);
 
   return (
     <div className="space-y-2 pb-16 pt-1 select-none">
@@ -148,7 +152,83 @@ export const MobileMercadoView: React.FC<Props> = ({ center, indice }) => {
         </div>
       </div>
 
-      {/* 5. TABELA JUROS DI COMPLETA */}
+      {/* 5. BOOK TOP 15 COMPLETO NO MOBILE */}
+      <div className="bg-[#0C1626] border border-[#1D3048] p-2 rounded-sm">
+        <div className="flex items-center justify-between pb-1 border-b border-[#1D3048]/50 mb-1">
+          <span className="text-[9px] font-bold text-[#8191A8] uppercase">
+            BOOK TOP 15 — {quote.contractCode} / {quote.ticker}
+          </span>
+          <span className="text-[8px] font-mono text-[#F3C65A]">Spread: {orderBook.spread} pts</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-1 text-[8px] font-mono max-h-48 overflow-y-auto pr-0.5">
+          {/* Lado da Compra */}
+          <div className="space-y-0.5">
+            <div className="text-[7.5px] text-[#21D787] font-bold border-b border-[#1D3048]/40 pb-0.5 flex justify-between">
+              <span>COMPRA</span>
+              <span>QTD</span>
+            </div>
+            {orderBook.buyLevels.slice(0, 15).map((l, idx) => {
+              const barWidth = Math.round((l.volume / maxBookVol) * 100);
+              return (
+                <div key={idx} className="relative flex justify-between items-center px-1 py-0.5 rounded-xs overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 left-0 bg-[#21D787]/15 pointer-events-none"
+                    style={{ width: `${barWidth}%` }}
+                  />
+                  <span className="relative z-10 text-[#21D787] font-bold">{l.price}</span>
+                  <span className="relative z-10 text-[#F0F4FA]">{l.volume}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Lado da Venda */}
+          <div className="space-y-0.5">
+            <div className="text-[7.5px] text-[#FF4D5A] font-bold border-b border-[#1D3048]/40 pb-0.5 flex justify-between">
+              <span>VENDA</span>
+              <span>QTD</span>
+            </div>
+            {orderBook.sellLevels.slice(0, 15).map((l, idx) => {
+              const barWidth = Math.round((l.volume / maxBookVol) * 100);
+              return (
+                <div key={idx} className="relative flex justify-between items-center px-1 py-0.5 rounded-xs overflow-hidden">
+                  <div
+                    className="absolute inset-y-0 right-0 bg-[#FF4D5A]/15 pointer-events-none"
+                    style={{ width: `${barWidth}%` }}
+                  />
+                  <span className="relative z-10 text-[#FF4D5A] font-bold">{l.price}</span>
+                  <span className="relative z-10 text-[#F0F4FA]">{l.volume}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* 6. MARCADOR JUROS DI (VARIAÇÃO EM PONTOS PERCENTUAIS) */}
+      <div className="bg-[#0C1626] border border-[#1D3048] p-2 rounded-sm">
+        <div className="flex items-center justify-between pb-1 border-b border-[#1D3048]/50 mb-1">
+          <span className="text-[9px] font-bold text-[#8191A8] uppercase">MARCADOR JUROS DI (VAR PP)</span>
+          <span className="text-[8px] font-mono text-[#8191A8]">HOJE S/ AJUSTE</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-1 text-[8px] font-mono">
+          {diVarPoints.map((p) => {
+            const isPos = p.varPp > 0;
+            const isNeg = p.varPp < 0;
+            return (
+              <div key={p.code} className="flex justify-between items-center bg-[#070D17] px-1.5 py-1 rounded border border-[#1D3048]/40">
+                <span className="text-[#8191A8] font-medium">{p.code}</span>
+                <span className={`font-bold ${isPos ? 'text-[#21D787]' : isNeg ? 'text-[#FF4D5A]' : 'text-[#8191A8]'}`}>
+                  {p.varPp === 0 ? '0,00' : formatSignedNumberBR(p.varPp, 2)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 7. TABELA JUROS DI COMPLETA */}
       <div className="bg-[#0C1626] border border-[#1D3048] p-2 rounded-sm">
         <div className="flex items-center justify-between pb-1 border-b border-[#1D3048]/60 mb-1">
           <span className="text-[9px] font-bold text-[#8191A8] uppercase">CURVA DE JUROS DI (B3)</span>

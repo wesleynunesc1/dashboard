@@ -7,7 +7,7 @@ import { SemiCircleGauge } from '@/components/ui/SemiCircleGauge';
 import { CircularProgressIndicator } from '@/components/ui/CircularProgressIndicator';
 import { CumulativeFlowChart } from '@/components/charts/CumulativeFlowChart';
 import { CorrelationChart } from '@/components/charts/CorrelationChart';
-import { ChevronUp, ChevronDown, CheckSquare, Layers } from 'lucide-react';
+import { ChevronUp, ChevronDown, CheckSquare } from 'lucide-react';
 
 interface Props {
   data: MarketSnapshot['indice'];
@@ -37,6 +37,11 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
 
   const isIndicePositive = quote.variationPoints >= 0;
 
+  // Cálculo para o preenchimento proporcional das barras do Book
+  const maxBuyVol = Math.max(...orderBook.buyLevels.map((l) => l.volume), 1);
+  const maxSellVol = Math.max(...orderBook.sellLevels.map((l) => l.volume), 1);
+  const maxBookVol = Math.max(maxBuyVol, maxSellVol);
+
   return (
     <div className="flex flex-col space-y-1.5 p-1.5 bg-[#070D17] text-[#F0F4FA] font-sans">
       {/* CABEÇALHO DO ATIVO */}
@@ -51,7 +56,7 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
         </div>
         <div className="flex items-center space-x-2">
           <h2 className="text-sm font-extrabold tracking-wide text-[#F0F4FA]">
-            ÍNDICE <span className="text-[#F3C65A]">— {quote.ticker}</span>
+            ÍNDICE <span className="text-[#F3C65A]">— {quote.contractCode} / {quote.ticker}</span>
           </h2>
         </div>
       </div>
@@ -60,7 +65,10 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
       <div className="grid grid-cols-12 gap-1.5">
         {/* COTAÇÃO */}
         <div className="col-span-5 bg-[#0C1626] border border-[#1D3048] p-2 rounded-sm flex flex-col justify-between">
-          <span className="text-[9px] font-bold text-[#8191A8] uppercase tracking-wider">COTAÇÃO</span>
+          <div className="flex justify-between items-center">
+            <span className="text-[9px] font-bold text-[#8191A8] uppercase tracking-wider">COTAÇÃO</span>
+            <span className="text-[9px] font-mono text-[#F3C65A] font-bold">{quote.contractCode}</span>
+          </div>
           <div className="my-1">
             <span className="font-mono text-2xl font-black text-[#F0F4FA] tracking-tight">
               {formatNumberBR(quote.price, 0)}
@@ -180,7 +188,7 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
               <span className="text-[#F0F4FA] font-bold">{formatNumberBR(volatility.spotPrice, 0)}</span>
             </div>
             <div className="bg-[#070D17] border border-[#1D3048] py-0.5 rounded">
-              <span className="text-[#8191A8]">WINFUT </span>
+              <span className="text-[#F3C65A] font-bold">{quote.contractCode} </span>
               <span className="text-[#F0F4FA] font-bold">{formatNumberBR(volatility.futPrice, 0)}</span>
             </div>
           </div>
@@ -304,7 +312,7 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
         </div>
       </div>
 
-      {/* BLOCO INFERIOR MULTI-MÓDULO: CORRELAÇÃO, TOP 10 IBOV, DI VAR EM PP, BOOK SIMPLIFICADO */}
+      {/* BLOCO INFERIOR MULTI-MÓDULO: CORRELAÇÃO, TOP 10 IBOV, DI VAR EM PP, BOOK TOP 15 */}
       <div className="grid grid-cols-12 gap-1.5">
         {/* CORRELAÇÃO */}
         <div className="col-span-4 bg-[#0C1626] border border-[#1D3048] p-2 rounded-sm flex flex-col justify-between">
@@ -356,50 +364,62 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
           </div>
         </div>
 
-        {/* JUROS DI VARIAÇÃO PP + BOOK */}
+        {/* BOOK TOP 15 PROFISSIONAL COM BARRAS DE PROFUNDIDADE */}
         <div className="col-span-4 bg-[#0C1626] border border-[#1D3048] p-1.5 rounded-sm flex flex-col justify-between">
           <div className="flex items-center justify-between pb-0.5 border-b border-[#1D3048]/50 mb-0.5">
-            <span className="text-[8px] font-bold text-[#8191A8] uppercase truncate">JUROS DI (VAR PP)</span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 text-[7.5px] font-mono">
-            {diVarPoints.map((p) => {
-              const isPos = p.varPp > 0;
-              const isNeg = p.varPp < 0;
-              return (
-                <div key={p.code} className="flex justify-between items-center bg-[#070D17] px-1 py-0.5 rounded border border-[#1D3048]/30">
-                  <span className="text-[#8191A8]">{p.code}</span>
-                  <span className={isPos ? 'text-[#21D787]' : isNeg ? 'text-[#FF4D5A]' : 'text-[#8191A8]'}>
-                    {p.varPp === 0 ? '0.00' : formatSignedNumberBR(p.varPp, 2)}
-                  </span>
-                </div>
-              );
-            })}
+            <span className="text-[8px] font-bold text-[#8191A8] uppercase truncate">
+              BOOK TOP 15 — {quote.contractCode}
+            </span>
+            <span className="text-[7px] font-mono text-[#F3C65A]">Spread: {orderBook.spread}</span>
           </div>
 
-          {/* Book Simplificado */}
-          <div className="mt-1 pt-0.5 border-t border-[#1D3048]/40">
-            <div className="flex justify-between text-[7.5px] text-[#8191A8] uppercase font-bold mb-0.5">
-              <span>BOOK TOP 5</span>
-              <span>Spread: {orderBook.spread} pts</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1 text-[7px] font-mono">
-              <div className="space-y-0.5">
-                {orderBook.buyLevels.slice(0, 2).map((l, idx) => (
-                  <div key={idx} className="flex justify-between bg-[#21D787]/10 px-1 py-0.5 rounded text-[#21D787]">
-                    <span>{l.price}</span>
-                    <span>{l.volume}</span>
-                  </div>
-                ))}
+          <div className="grid grid-cols-2 gap-1 text-[7px] font-mono max-h-[75px] overflow-y-auto pr-0.5">
+            {/* Lado da Compra (Bid) */}
+            <div className="space-y-0.5">
+              <div className="text-[7px] text-[#21D787] font-bold border-b border-[#1D3048]/40 pb-0.5 flex justify-between">
+                <span>COMPRA</span>
+                <span>QTD</span>
               </div>
-              <div className="space-y-0.5">
-                {orderBook.sellLevels.slice(0, 2).map((l, idx) => (
-                  <div key={idx} className="flex justify-between bg-[#FF4D5A]/10 px-1 py-0.5 rounded text-[#FF4D5A]">
-                    <span>{l.price}</span>
-                    <span>{l.volume}</span>
+              {orderBook.buyLevels.slice(0, 15).map((l, idx) => {
+                const barWidth = Math.round((l.volume / maxBookVol) * 100);
+                return (
+                  <div key={idx} className="relative flex justify-between items-center px-1 py-0.5 rounded-xs overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 left-0 bg-[#21D787]/15 pointer-events-none"
+                      style={{ width: `${barWidth}%` }}
+                    />
+                    <span className="relative z-10 text-[#21D787] font-bold">{l.price}</span>
+                    <span className="relative z-10 text-[#F0F4FA]">{l.volume}</span>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
+
+            {/* Lado da Venda (Ask) */}
+            <div className="space-y-0.5">
+              <div className="text-[7px] text-[#FF4D5A] font-bold border-b border-[#1D3048]/40 pb-0.5 flex justify-between">
+                <span>VENDA</span>
+                <span>QTD</span>
+              </div>
+              {orderBook.sellLevels.slice(0, 15).map((l, idx) => {
+                const barWidth = Math.round((l.volume / maxBookVol) * 100);
+                return (
+                  <div key={idx} className="relative flex justify-between items-center px-1 py-0.5 rounded-xs overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 right-0 bg-[#FF4D5A]/15 pointer-events-none"
+                      style={{ width: `${barWidth}%` }}
+                    />
+                    <span className="relative z-10 text-[#FF4D5A] font-bold">{l.price}</span>
+                    <span className="relative z-10 text-[#F0F4FA]">{l.volume}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="text-[7px] font-mono text-center pt-0.5 border-t border-[#1D3048]/40 text-[#8191A8] flex justify-between">
+            <span>Imbalance: {orderBook.imbalancePercent}% Comprador</span>
+            <span className="text-[#21D787]">Profundidade N15</span>
           </div>
         </div>
       </div>
@@ -408,7 +428,7 @@ export const IndiceColumn: React.FC<Props> = ({ data }) => {
       <div className="bg-[#0C1626] border border-[#1D3048] p-2 rounded-sm">
         <div className="flex items-center justify-between pb-1 border-b border-[#1D3048]/50 mb-1">
           <span className="text-[9px] font-bold text-[#8191A8] uppercase">
-            PLAYERS — ÍNDICE <span className="font-mono text-[#8191A8]">(CONTRATOS)</span>
+            PLAYERS — ÍNDICE ({quote.contractCode}) <span className="font-mono text-[#8191A8]">(CONTRATOS)</span>
           </span>
           <button
             onClick={() => setIsAutoScroll(!isAutoScroll)}
