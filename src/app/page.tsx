@@ -12,6 +12,7 @@ import { MobileDolarView } from '@/components/dashboard/MobileDolarView';
 import { MobileIndiceView } from '@/components/dashboard/MobileIndiceView';
 import { MobileMercadoView } from '@/components/dashboard/MobileMercadoView';
 import { MobileFluxoView } from '@/components/dashboard/MobileFluxoView';
+import { MacroAnalysisPanel } from '@/components/dashboard/MacroAnalysisPanel';
 
 export default function Home() {
   const { snapshot, setSnapshot, mobileTab } = useMarketStore();
@@ -48,9 +49,12 @@ export default function Home() {
       <Header />
 
       {/* ÁREA PRINCIPAL */}
-      <main className="flex-1 w-full max-w-[1920px] mx-auto p-1.5 sm:p-2 overflow-x-hidden">
+      <main className="flex-1 w-full max-w-[1920px] mx-auto p-1.5 sm:p-2 overflow-x-hidden space-y-1.5">
+        {/* BLOCO DE ANÁLISE TOTAL E DIREÇÃO DE MERCADO (DESKTOP E MOBILE) */}
+        <MacroAnalysisPanel snapshot={snapshot} />
+
         {/* ============================================================== */}
-        {/* DESKTOP LAYOUT (>= 1280px / xl) — 100% PRESERVADO INTACTO     */}
+        {/* DESKTOP LAYOUT (>= 1280px / xl) — 100% PRESERVADO             */}
         {/* ============================================================== */}
         <div className="hidden xl:grid xl:grid-cols-12 gap-1.5">
           {/* COLUNA ESQUERDA — DÓLAR FUTURO (WDOFUT) */}
@@ -94,6 +98,7 @@ export default function Home() {
           <span>FEED: B3 RTD/FAST</span>
           <span>CONTRATO ATIVO: WINZ26 | WDOF27</span>
           <span>BOOK: TOP 15 PROFUNDIDADE</span>
+          <span>MOTOR DE ANÁLISE: MACRO MATRIX</span>
         </div>
         <div>
           <span>FASE 01 CONCLUÍDA — PRONTO PARA INTEGRAÇÃO COM EXCEL / PYTHON NA FASE 02</span>
