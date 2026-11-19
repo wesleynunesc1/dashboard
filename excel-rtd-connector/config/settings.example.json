@@ -3,7 +3,7 @@
   "worksheet": "Painel",
   "polling_interval_ms": 250,
   "server_url": "wss://dashboard-production-7b535f43.up.railway.app",
-  "server_token": "alicerce_rtd_secret_token_2026",
+  "server_token": "SUBSTITUA_PELO_TOKEN_CONFIGURADO_NO_WINDOWS_CREDENTIAL_MANAGER",
   "cells": {
     "wdofut_price": "B5",
     "wdofut_variation": "B6",
