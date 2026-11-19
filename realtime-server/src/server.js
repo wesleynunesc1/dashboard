@@ -1,22 +1,23 @@
 // realtime-server/src/server.js
 /**
  * Servidor WebSocket de Alta Performance em Memória RAM
- * Arquitetura: Profit Pro -> Excel RTD -> Conector Windows -> Servidor WebSocket -> Dashboard Next.js
+ * Arquitetura: Profit Pro -> Excel RTD -> Conector Windows -> Servidor WebSocket (Railway) -> Dashboard Next.js (Vercel)
  * 
- * Regras:
- * - Zero Banco de Dados (Zero Supabase / Postgres)
- * - Autenticação por Tokens de Conector (Publisher) e Dashboard (Subscriber)
- * - Distribui snapshot imediato aos novos clientes
- * - Transmite apenas deltas alterados
- * - Detecta dados desatualizados (stale)
+ * Segurança Avançada:
+ * - Validação de tokens de sessão temporários assinados com HMAC-SHA256 (Vercel Backend)
+ * - Aceita também DASHBOARD_TOKEN direto se configurado
+ * - CONNECTOR_TOKEN exclusivo para o conector Windows
+ * - Zero Banco de Dados
  */
 require('dotenv').config();
 const { WebSocketServer, WebSocket } = require('ws');
 const http = require('http');
+const crypto = require('crypto');
 
 const PORT = process.env.PORT || 8080;
 const CONNECTOR_TOKEN = process.env.CONNECTOR_TOKEN || 'alicerce_rtd_secret_token_2026';
 const DASHBOARD_TOKEN = process.env.DASHBOARD_TOKEN || 'alicerce_dashboard_token_2026';
+const WS_AUTH_SECRET = process.env.WS_AUTH_SECRET || DASHBOARD_TOKEN || 'alicerce_auth_secret_shared_2026';
 const DATA_STALE_TIMEOUT_MS = parseInt(process.env.DATA_STALE_TIMEOUT_MS || '10000', 10);
 
 // Estado de Mercado 100% em Memória RAM
@@ -25,8 +26,40 @@ let lastUpdateTimestamp = 0;
 let isConnectorOnline = false;
 
 // Conjunto de conexões
-const subscribers = new Set(); // Dashboards conectadas
-let activePublisher = null;    // Conector Windows
+const subscribers = new Set();
+let activePublisher = null;
+
+function validateSubscriberToken(token) {
+  if (!token) return false;
+
+  // 1. Verificação de Token de Sessão Assinado HMAC (tmp_timestamp_signature)
+  if (token.startsWith('tmp_')) {
+    const parts = token.split('_');
+    if (parts.length === 3) {
+      const tokenTime = parseInt(parts[1], 10);
+      const signature = parts[2];
+      const now = Date.now();
+
+      // Expiração de 5 minutos para cobrir latência de handshake e conexões
+      if (now - tokenTime < 300000 && tokenTime <= now + 5000) {
+        const payload = `subscriber:${tokenTime}`;
+        const hmac = crypto.createHmac('sha256', WS_AUTH_SECRET);
+        hmac.update(payload);
+        const expectedSig = hmac.digest('hex');
+        if (signature === expectedSig) {
+          return true;
+        }
+      }
+    }
+  }
+
+  // 2. Token estático direto (se configurado)
+  if (DASHBOARD_TOKEN && token === DASHBOARD_TOKEN) {
+    return true;
+  }
+
+  return false;
+}
 
 const server = http.createServer((req, res) => {
   if (req.url === '/health') {
@@ -56,7 +89,7 @@ function broadcast(payload, targetSet = subscribers) {
   }
 }
 
-// Verificação periódica de dados obsoletos (Heartbeat & Stale Data Check)
+// Verificação de dados obsoletos (Stale Warning)
 setInterval(() => {
   const now = Date.now();
   if (lastUpdateTimestamp > 0 && now - lastUpdateTimestamp > DATA_STALE_TIMEOUT_MS) {
@@ -70,23 +103,22 @@ setInterval(() => {
 }, 3000);
 
 wss.on('connection', (ws, req) => {
-  let role = null; // 'publisher' ou 'subscriber'
+  let role = null;
   let authenticated = false;
   const ip = req.socket.remoteAddress;
 
-  // Timeout para autenticação (5 segundos)
   const authTimeout = setTimeout(() => {
     if (!authenticated) {
       ws.send(JSON.stringify({ type: 'ERROR', message: 'Auth timeout: token required' }));
       ws.close(4001, 'Auth timeout');
     }
-  }, 5000);
+  }, 6000);
 
   ws.on('message', (data) => {
     try {
       const msg = JSON.parse(data.toString());
 
-      // 1. Etapa de Autenticação
+      // 1. Autenticação
       if (msg.type === 'AUTH') {
         clearTimeout(authTimeout);
 
@@ -98,23 +130,20 @@ wss.on('connection', (ws, req) => {
             isConnectorOnline = true;
             ws.send(JSON.stringify({ type: 'AUTH_OK', role: 'publisher' }));
             console.log(`[AUTH] Conector Windows autenticado com sucesso (${ip})`);
-
-            // Notifica as dashboards de que o conector está online
             broadcast({ type: 'CONNECTOR_STATUS', online: true });
           } else {
+            console.warn(`[AUTH FAIL] Conector com token inválido de ${ip}`);
             ws.send(JSON.stringify({ type: 'ERROR', message: 'Token de Conector inválido' }));
             ws.close(4003, 'Forbidden');
           }
         } else if (msg.role === 'subscriber') {
-          // Dashboard
-          if (!DASHBOARD_TOKEN || msg.token === DASHBOARD_TOKEN) {
+          if (validateSubscriberToken(msg.token)) {
             authenticated = true;
             role = 'subscriber';
             subscribers.add(ws);
             ws.send(JSON.stringify({ type: 'AUTH_OK', role: 'subscriber' }));
-            console.log(`[AUTH] Nova Dashboard conectada (${ip}). Total: ${subscribers.size}`);
+            console.log(`[AUTH] Dashboard conectada (${ip}). Total ativas: ${subscribers.size}`);
 
-            // Envia imediatamente o último snapshot em memória
             if (currentMarketSnapshot) {
               ws.send(JSON.stringify({
                 type: 'INITIAL_SNAPSHOT',
@@ -130,7 +159,8 @@ wss.on('connection', (ws, req) => {
               }));
             }
           } else {
-            ws.send(JSON.stringify({ type: 'ERROR', message: 'Token de Dashboard inválido' }));
+            console.warn(`[AUTH FAIL] Dashboard rejeitada: token inválido ou expirado de ${ip}`);
+            ws.send(JSON.stringify({ type: 'ERROR', message: 'Token de Dashboard inválido ou expirado' }));
             ws.close(4003, 'Forbidden');
           }
         }
@@ -162,7 +192,6 @@ wss.on('connection', (ws, req) => {
 
         if (msg.type === 'DELTAS') {
           lastUpdateTimestamp = Date.now();
-          // Atualiza snapshot em memória se aplicável
           if (currentMarketSnapshot && msg.deltas) {
             for (const d of msg.deltas) {
               if (d.key && currentMarketSnapshot.cells) {
@@ -170,7 +199,6 @@ wss.on('connection', (ws, req) => {
               }
             }
           }
-          // Transmite apenas as alterações para as dashboards
           broadcast({
             type: 'DELTA_UPDATE',
             deltas: msg.deltas,
@@ -180,7 +208,7 @@ wss.on('connection', (ws, req) => {
         }
       }
 
-      // 3. Heartbeat de assinantes
+      // 3. Heartbeat do navegador
       if (msg.type === 'PING') {
         ws.send(JSON.stringify({ type: 'PONG', timestamp: Date.now() }));
       }
@@ -212,6 +240,7 @@ server.listen(PORT, () => {
   console.log(`=======================================================`);
   console.log(`  ALICERCE REALTIME WEBSOCKET SERVER INICIADO          `);
   console.log(`  Porta HTTP/WS: ${PORT}                             `);
-  console.log(`  Memória RAM: Zero Banco de Dados                    `);
+  console.log(`  Serviço: Railway Production Cloud                   `);
+  console.log(`  Segurança: HMAC Token Authentication                `);
   console.log(`=======================================================`);
 });

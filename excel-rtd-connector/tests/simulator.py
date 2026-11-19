@@ -1,46 +1,47 @@
 # excel-rtd-connector/tests/simulator.py
 """
-Simulador de Testes Locais para a Comunicação em Tempo Real.
-Permite validar toda a esteira sem precisar do Profit Pro ou do Excel:
-1. Conecta ao Servidor WebSocket
+Simulador de Testes Locais e em Producao (Railway).
+Permite validar toda a esteira de comunicacao em tempo real:
+1. Conecta ao Servidor WebSocket (Railway WSS)
 2. Autentica como conector Windows
 3. Emite snapshot inicial
-4. Simula oscilações de cotações RTD e envia deltas periódicos
+4. Simula oscilacoes de cotacoes RTD e envia deltas periodicos
 """
+import sys
 import time
 import json
 import random
 import websocket
 
-SERVER_URL = "ws://localhost:8080"
-TOKEN = "alicerce_rtd_secret_token_2026"
+DEFAULT_SERVER_URL = "wss://dashboard-production-7b535f43.up.railway.app"
+DEFAULT_TOKEN = "alicerce_rtd_secret_token_2026"
 
 
-def run_simulator():
-    print(f"[*] Iniciando Simulador de Conector RTD -> {SERVER_URL}")
+def run_simulator(server_url=DEFAULT_SERVER_URL, token=DEFAULT_TOKEN, max_ticks=None):
+    print(f"[*] Conectando ao Servidor Railway: {server_url}")
 
-    ws = websocket.create_connection(SERVER_URL)
-    print("[+] Conectado ao servidor. Enviando autenticacao...")
+    ws = websocket.create_connection(server_url, timeout=10)
+    print("[+] Conectado com sucesso. Enviando credencial de autenticacao...")
 
     # 1. Autenticação
     ws.send(json.dumps({
         "type": "AUTH",
         "role": "publisher",
-        "token": TOKEN
+        "token": token
     }))
 
     auth_resp = json.loads(ws.recv())
-    print(f"[✔] Resposta do Servidor: {auth_resp}")
+    print(f"[✔] Resposta de Autenticacao do Servidor: {auth_resp}")
 
     if auth_resp.get("type") != "AUTH_OK":
         print("[-] Falha na autenticação.")
-        return
+        return False
 
     # 2. Envio de Snapshot Inicial
     wdofut_price = 5667.5
     winz_price = 173820
 
-    print("[*] Enviando Snapshot Inicial do Excel...")
+    print("[*] Enviando Snapshot Inicial do Simulador RTD...")
     ws.send(json.dumps({
         "type": "SNAPSHOT",
         "snapshot": {
@@ -58,16 +59,18 @@ def run_simulator():
         },
         "timestamp": time.time()
     }))
-
-    print("[✔] Snapshot enviado com sucesso. Iniciando envio de deltas a cada 500ms...")
+    print("[✔] Snapshot publicado com sucesso no Railway.")
 
     seq = 0
     try:
         while True:
+            if max_ticks and seq >= max_ticks:
+                print(f"[✔] Teste finalizado apos {seq} deltas.")
+                break
+
             time.sleep(0.5)
             seq += 1
 
-            # Oscilação simulada
             dolar_noise = random.choice([-0.5, 0.0, 0.5])
             indice_noise = random.choice([-15, 0, 15, 20])
 
@@ -107,6 +110,9 @@ def run_simulator():
     finally:
         ws.close()
 
+    return True
+
 
 if __name__ == "__main__":
-    run_simulator()
+    url = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_SERVER_URL
+    run_simulator(server_url=url)

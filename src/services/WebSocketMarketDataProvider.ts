@@ -11,14 +11,13 @@ export interface WebSocketStatus {
 }
 
 /**
- * Provedor WebSocket Realtime Sem Banco de Dados
- * Conecta-se diretamente ao servidor WebSocket Node.js (WSS).
- * Se o WebSocket não estiver disponível ou configurado, faz fallback transparente
- * para o MockMarketDataProvider, garantindo que a Dashboard nunca fique sem renderização.
+ * Provedor WebSocket Realtime com Segurança Avançada
+ * - Obtém credencial temporária assinada pelo backend Next.js (/api/auth/ws-token)
+ * - NUNCA expõe segredos estáticos no bundle público
+ * - Mantém fallback caso a rede esteja indisponível
  */
 export class WebSocketMarketDataProvider implements MarketDataProvider {
   private wsUrl: string;
-  private token: string;
   private socket: WebSocket | null = null;
   private listeners: Set<(snapshot: MarketSnapshot) => void> = new Set();
   private statusListeners: Set<(status: WebSocketStatus) => void> = new Set();
@@ -31,33 +30,45 @@ export class WebSocketMarketDataProvider implements MarketDataProvider {
   private lastMessageTime = 0;
 
   constructor(
-    wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080',
-    token = process.env.NEXT_PUBLIC_WS_TOKEN || 'alicerce_dashboard_token_2026'
+    wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'wss://dashboard-production-7b535f43.up.railway.app'
   ) {
     this.wsUrl = wsUrl;
-    this.token = token;
-    // Inicializa com o snapshot atual do serviço local
     this.currentSnapshot = fallbackMockService.getCurrentSnapshot();
+  }
+
+  private async fetchTemporaryToken(): Promise<string> {
+    try {
+      const res = await fetch('/api/auth/ws-token');
+      if (res.ok) {
+        const data = await res.json();
+        return data.token || '';
+      }
+    } catch (e) {
+      console.debug('[WS Auth] Falha ao obter token temporário do backend:', e);
+    }
+    return '';
   }
 
   async connect(): Promise<void> {
     if (typeof window === 'undefined') return;
 
     try {
+      // 1. Obtém credencial temporária segura via backend
+      const tempToken = await this.fetchTemporaryToken();
+
       this.socket = new WebSocket(this.wsUrl);
 
       this.socket.onopen = () => {
         this.isConnected = true;
-        // Autentica como Dashboard (Subscriber)
+        // Autentica como Dashboard (Subscriber) com token temporário
         const authMsg = {
           type: 'AUTH',
           role: 'subscriber',
-          token: this.token
+          token: tempToken
         };
         this.socket?.send(JSON.stringify(authMsg));
         this.notifyStatus();
 
-        // Inicia ping regular a cada 20s
         if (this.pingTimer) clearInterval(this.pingTimer);
         this.pingTimer = setInterval(() => {
           if (this.socket?.readyState === WebSocket.OPEN) {
@@ -134,9 +145,6 @@ export class WebSocketMarketDataProvider implements MarketDataProvider {
     this.notify();
   }
 
-  /**
-   * Mapeia dinamicamente os campos do Excel RTD no Snapshot da Dashboard
-   */
   private applyExcelCellsToSnapshot(cells: Record<string, any>) {
     const snap = { ...this.currentSnapshot };
 
@@ -249,5 +257,4 @@ export class WebSocketMarketDataProvider implements MarketDataProvider {
   }
 }
 
-// Instância unificada exportada
 export const realtimeService = new WebSocketMarketDataProvider();

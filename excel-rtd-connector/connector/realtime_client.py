@@ -26,7 +26,7 @@ class RealtimeClient:
 
     def __init__(
         self,
-        server_url: str = "ws://localhost:8080",
+        server_url: str = "wss://dashboard-production-7b535f43.up.railway.app",
         token: str = "alicerce_rtd_secret_token_2026",
         max_buffer_size: int = 1000
     ):
@@ -80,12 +80,11 @@ class RealtimeClient:
             self._is_connected = False
             self._is_authenticated = False
             if self._running:
-                time.sleep(3.0)  # Aguarda 3 segundos antes de tentar reconectar
+                time.sleep(3.0)
 
     def _on_open(self, ws):
         logger.info("Conectado ao servidor WebSocket. Autenticando dispositivo...")
         self._is_connected = True
-        # Envia credencial de autenticação
         auth_msg = {
             "type": "AUTH",
             "role": "publisher",
@@ -101,7 +100,6 @@ class RealtimeClient:
             if msg_type == "AUTH_OK":
                 self._is_authenticated = True
                 logger.info("Dispositivo AUTENTICADO com sucesso no Servidor Realtime.")
-                # Se tínhamos um snapshot pendente, envia agora
                 if self._last_snapshot_cache:
                     self.send_snapshot(self._last_snapshot_cache)
             elif msg_type == "ERROR":
@@ -166,6 +164,11 @@ class RealtimeClient:
                 self._ws.send(json.dumps(payload))
             except Exception as e:
                 logger.debug(f"Falha ao enviar deltas: {e}")
+
+    def clear(self):
+        """Limpa a fila de deltas em buffer."""
+        with self._lock:
+            self._queue.clear()
 
     def get_status(self) -> Dict[str, Any]:
         """Estatísticas do cliente realtime."""

@@ -2,7 +2,7 @@
   "workbook": "",
   "worksheet": "",
   "polling_interval_ms": 250,
-  "server_url": "ws://localhost:8080",
+  "server_url": "wss://dashboard-production-7b535f43.up.railway.app",
   "server_token": "alicerce_rtd_secret_token_2026",
   "cells": {
     "wdofut_price": "B5",
