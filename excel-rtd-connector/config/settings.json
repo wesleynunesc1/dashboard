@@ -1,0 +1,15 @@
+{
+  "workbook": "",
+  "worksheet": "",
+  "polling_interval_ms": 250,
+  "cells": {
+    "wdofut_price": "B5",
+    "winz_price": "C5",
+    "gringo_flow_dolar": "D5",
+    "di_rate": "G5"
+  },
+  "ranges": {},
+  "tolerance": 0.000001,
+  "max_consecutive_errors": 5,
+  "log_level": "INFO"
+}

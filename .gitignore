@@ -41,3 +41,12 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+excel-rtd-connector/.venv/
+excel-rtd-connector/__pycache__/
+excel-rtd-connector/*/__pycache__/
+excel-rtd-connector/*.pyc
+excel-rtd-connector/logs/*.log
+.pytest_cache/
+excel-rtd-connector/.pytest_cache/
+

@@ -1,0 +1,29 @@
+{
+  "workbook": "PLANILHA_CLIENTE.xlsx",
+  "worksheet": "Painel",
+  "polling_interval_ms": 250,
+  "cells": {
+    "wdofut_price": "B5",
+    "wdofut_variation": "B6",
+    "winz_price": "C5",
+    "winz_variation": "C6",
+    "gringo_flow_dolar": "D5",
+    "bank_flow_dolar": "E5",
+    "retail_flow_dolar": "F5",
+    "gringo_flow_indice": "D7",
+    "bank_flow_indice": "E7",
+    "retail_flow_indice": "F7",
+    "di_rate_f27": "G5",
+    "di_rate_f28": "G6",
+    "di_rate_f29": "G7",
+    "ptax_p1": "H5",
+    "ptax_p2": "H6"
+  },
+  "ranges": {
+    "book_top_bids": "J5:K9",
+    "book_top_asks": "L5:M9"
+  },
+  "tolerance": 0.000001,
+  "max_consecutive_errors": 5,
+  "log_level": "INFO"
+}

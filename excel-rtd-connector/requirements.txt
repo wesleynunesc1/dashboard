@@ -1,0 +1,5 @@
+pywin32>=306
+psutil>=5.9.0
+rich>=13.0.0
+pydantic>=2.0.0
+pytest>=8.0.0
