@@ -1,23 +1,17 @@
 # excel-rtd-connector/main.py
 """
 Ponto de entrada do Conector Profissional Excel RTD / Profit Pro.
-Comandos:
-  python main.py discover  -> Inspeciona e descobre instâncias, planilhas e abas abertas.
-  python main.py monitor   -> Monitoramento contínuo em tempo real com terminal Rich.
+Modos de execução:
+  python main.py             -> Inicia o aplicativo Windows com interface gráfica e ícone de bandeja.
+  python main.py --tray      -> Inicia minimizado diretamente na bandeja (ideal para autostart do Windows).
+  python main.py discover    -> Inspeciona e descobre planilhas abertas no terminal.
+  python main.py monitor     -> Monitoramento contínuo em terminal CLI.
 """
 import sys
 import os
 import json
 import logging
 from typing import Dict, Any, List
-from datetime import datetime
-
-from rich.console import Console
-from rich.table import Table
-from rich.panel import Panel
-from rich.live import Live
-from rich.layout import Layout
-from rich.text import Text
 
 from models.market_data import ConnectorSettings, CellValue, FieldChange
 from connector.excel_connection import ExcelConnection
@@ -37,7 +31,6 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger("main")
-console = Console()
 
 
 def load_settings(path: str = "config/settings.json") -> ConnectorSettings:
@@ -60,6 +53,11 @@ def load_settings(path: str = "config/settings.json") -> ConnectorSettings:
 
 def command_discover():
     """Descobre instâncias ativas do Excel, pastas de trabalho e abas."""
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+
+    console = Console()
     console.print(Panel.fit(
         "[bold cyan]CONECTOR EXCEL RTD[/bold cyan] — [bold yellow]DESCOBERTA DE PLANILHAS[/bold yellow]\n"
         "[dim]Varredura não invasiva via COM (GetActiveObject). Nenhuma célula é modificada.[/dim]",
@@ -109,7 +107,15 @@ def command_discover():
 
 
 def command_monitor():
-    """Inicia o monitoramento contínuo em tempo real com terminal profissional."""
+    """Inicia o monitoramento contínuo em terminal CLI com Rich."""
+    from rich.console import Console
+    from rich.table import Table
+    from rich.panel import Panel
+    from rich.live import Live
+    from rich.layout import Layout
+    from rich.text import Text
+
+    console = Console()
     settings = load_settings()
 
     recent_changes: List[FieldChange] = []
@@ -119,7 +125,7 @@ def command_monitor():
         nonlocal recent_changes
         for ch in changes:
             recent_changes.insert(0, ch)
-        recent_changes = recent_changes[:15]  # Mantém os 15 eventos mais recentes
+        recent_changes = recent_changes[:15]
 
     def on_tick(vals: Dict[str, CellValue], diag):
         nonlocal latest_values
@@ -138,7 +144,6 @@ def command_monitor():
             Layout(name="footer", size=3),
         )
 
-        # Header
         conn_status = "[bold green]CONECTADO[/bold green]" if engine.connection.is_alive() else "[bold red]DESCONECTADO (AGUARDANDO EXCEL)[/bold red]"
         header_text = Text.from_markup(
             f" [bold cyan]EXCEL RTD CONNECTOR[/bold cyan] | Status: {conn_status} | "
@@ -148,13 +153,11 @@ def command_monitor():
         )
         layout["header"].update(Panel(header_text, border_style="cyan"))
 
-        # Main: Tabela de Valores Atuais e Feed de Alterações lado a lado
         layout["main"].split_row(
             Layout(name="left", ratio=6),
             Layout(name="right", ratio=6),
         )
 
-        # Tabela de Valores
         vals_table = Table(title="VALORES CALCULADOS RTD (EM MEMÓRIA)", header_style="bold cyan", border_style="dim", expand=True)
         vals_table.add_column("Campo", style="bold white", width=16)
         vals_table.add_column("Célula", style="dim", width=8)
@@ -172,7 +175,6 @@ def command_monitor():
 
         layout["left"].update(Panel(vals_table, border_style="dim"))
 
-        # Feed de Alterações (Deltas)
         delta_table = Table(title="ÚLTIMAS ALTERAÇÕES DETECTADAS (DELTAS)", header_style="bold yellow", border_style="dim", expand=True)
         delta_table.add_column("Horário", style="dim", width=12)
         delta_table.add_column("Campo", style="bold white", width=14)
@@ -193,7 +195,6 @@ def command_monitor():
 
         layout["right"].update(Panel(delta_table, border_style="dim"))
 
-        # Footer de Diagnósticos
         footer_text = Text.from_markup(
             f" [bold]Leituras:[/bold] {diag.total_reads} (Falhas: [red]{diag.failed_reads}[/red]) | "
             f"[bold]Latência COM:[/bold] {diag.last_read_duration_ms:.1f}ms (Média: {diag.avg_read_duration_ms:.1f}ms, Máx: {diag.max_read_duration_ms:.1f}ms) | "
@@ -216,19 +217,25 @@ def command_monitor():
         console.print("[green]Conector finalizado e desconectado do Excel.[/green]")
 
 
+def command_gui(start_minimized: bool = False):
+    """Inicia a aplicação Windows nativa com ícone na bandeja."""
+    from connector.tray_app import TrayApplication
+    settings = load_settings()
+    app = TrayApplication(settings)
+    app.run(start_minimized=start_minimized)
+
+
 def main():
-    if len(sys.argv) > 1 and sys.argv[1].lower() == "discover":
+    args = [arg.lower() for arg in sys.argv[1:]]
+
+    if "discover" in args:
         command_discover()
-    elif len(sys.argv) > 1 and sys.argv[1].lower() == "monitor":
+    elif "monitor" in args:
         command_monitor()
+    elif "--tray" in args or "-t" in args:
+        command_gui(start_minimized=True)
     else:
-        console.print(Panel.fit(
-            "[bold cyan]CONECTOR EXCEL RTD / PROFIT PRO[/bold cyan]\n\n"
-            "Comandos disponíveis:\n"
-            "  [bold green]python main.py discover[/bold green] -> Descobre planilhas e abas abertas\n"
-            "  [bold green]python main.py monitor[/bold green]  -> Inicia o monitoramento contínuo em tempo real\n",
-            border_style="cyan"
-        ))
+        command_gui(start_minimized=False)
 
 
 if __name__ == "__main__":

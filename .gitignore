@@ -50,3 +50,7 @@ excel-rtd-connector/logs/*.log
 .pytest_cache/
 excel-rtd-connector/.pytest_cache/
 
+
+excel-rtd-connector/build/
+excel-rtd-connector/dist/
+
