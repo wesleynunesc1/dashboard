@@ -1,31 +1,156 @@
 {
-  "workbook": "PLANILHA_CLIENTE.xlsx",
-  "worksheet": "Painel",
   "polling_interval_ms": 250,
   "server_url": "wss://dashboard-production-7b535f43.up.railway.app",
   "server_token": "SUBSTITUA_PELO_TOKEN_CONFIGURADO_NO_WINDOWS_CREDENTIAL_MANAGER",
-  "cells": {
-    "wdofut_price": "B5",
-    "wdofut_variation": "B6",
-    "winz_price": "C5",
-    "winz_variation": "C6",
-    "gringo_flow_dolar": "D5",
-    "bank_flow_dolar": "E5",
-    "retail_flow_dolar": "F5",
-    "gringo_flow_indice": "D7",
-    "bank_flow_indice": "E7",
-    "retail_flow_indice": "F7",
-    "di_rate_f27": "G5",
-    "di_rate_f28": "G6",
-    "di_rate_f29": "G7",
-    "ptax_p1": "H5",
-    "ptax_p2": "H6"
-  },
-  "ranges": {
-    "book_top_bids": "J5:K9",
-    "book_top_asks": "L5:M9"
-  },
   "tolerance": 0.000001,
   "max_consecutive_errors": 5,
-  "log_level": "INFO"
+  "log_level": "INFO",
+  "workbooks": [
+    {
+      "name_pattern": "DADOS^JWIN^JWDO",
+      "polling_interval_ms": 250,
+      "active": true,
+      "sheets": [
+        {
+          "sheet_name": "Planilha4",
+          "cells": [
+            {
+              "indicator": "dolfut_price",
+              "address": "D12",
+              "data_type": "float"
+            },
+            {
+              "indicator": "dolfut_variation",
+              "address": "J12",
+              "data_type": "float"
+            },
+            {
+              "indicator": "dolfut_variation_pts",
+              "address": "K12",
+              "data_type": "float"
+            },
+            {
+              "indicator": "dolpt_price",
+              "address": "D13",
+              "data_type": "float"
+            },
+            {
+              "indicator": "wdoz26_price",
+              "address": "D32",
+              "data_type": "float"
+            },
+            {
+              "indicator": "wdoz26_variation",
+              "address": "J32",
+              "data_type": "float"
+            },
+            {
+              "indicator": "winfut_price",
+              "address": "D33",
+              "data_type": "float"
+            },
+            {
+              "indicator": "winfut_variation",
+              "address": "J33",
+              "data_type": "float"
+            },
+            {
+              "indicator": "winfut_variation_pts",
+              "address": "K33",
+              "data_type": "float"
+            },
+            {
+              "indicator": "winz26_price",
+              "address": "D34",
+              "data_type": "float"
+            },
+            {
+              "indicator": "winz26_variation",
+              "address": "J34",
+              "data_type": "float"
+            },
+            {
+              "indicator": "ibov_price",
+              "address": "D19",
+              "data_type": "float"
+            },
+            {
+              "indicator": "ibov_variation",
+              "address": "J19",
+              "data_type": "float"
+            },
+            {
+              "indicator": "petr4_price",
+              "address": "D26",
+              "data_type": "float"
+            },
+            {
+              "indicator": "petr4_variation",
+              "address": "J26",
+              "data_type": "float"
+            },
+            {
+              "indicator": "vale3_price",
+              "address": "D30",
+              "data_type": "float"
+            },
+            {
+              "indicator": "vale3_variation",
+              "address": "J30",
+              "data_type": "float"
+            },
+            {
+              "indicator": "itub4_price",
+              "address": "D22",
+              "data_type": "float"
+            },
+            {
+              "indicator": "bbdc4_price",
+              "address": "D5",
+              "data_type": "float"
+            },
+            {
+              "indicator": "bbas3_price",
+              "address": "D4",
+              "data_type": "float"
+            }
+          ],
+          "ranges": {}
+        }
+      ]
+    },
+    {
+      "name_pattern": "nero.xlsm",
+      "polling_interval_ms": 250,
+      "active": true,
+      "sheets": [
+        {
+          "sheet_name": "Planilha1",
+          "cells": [
+            {
+              "indicator": "nero_winz26_price",
+              "address": "D2",
+              "data_type": "float"
+            },
+            {
+              "indicator": "nero_winz26_variation",
+              "address": "I2",
+              "data_type": "float"
+            },
+            {
+              "indicator": "nero_winz26_variation_pts",
+              "address": "J2",
+              "data_type": "float"
+            },
+            {
+              "indicator": "nero_winz26_volume_fluxo",
+              "address": "L2",
+              "data_type": "float"
+            }
+          ],
+          "ranges": {}
+        }
+      ]
+    }
+  ]
 }
