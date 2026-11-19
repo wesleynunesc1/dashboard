@@ -1,12 +1,27 @@
 'use client';
 
-import React from 'react';
-import { Play, Pause, RotateCcw, Activity } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Play, Pause, RotateCcw, Activity, Radio, AlertTriangle } from 'lucide-react';
 import { useMarketStore } from '@/store/useMarketStore';
+import { realtimeService, WebSocketStatus } from '@/services/WebSocketMarketDataProvider';
 
 export const Header: React.FC = () => {
   const { isPaused, togglePause, resetSimulation, snapshot } = useMarketStore();
   const lastUpdate = snapshot?.dolar.quote.lastUpdate || '11:38:22';
+
+  const [wsStatus, setWsStatus] = useState<WebSocketStatus>({
+    connected: false,
+    connectorOnline: false,
+    isStale: false,
+    lastMessageTime: 0
+  });
+
+  useEffect(() => {
+    const unsub = realtimeService.subscribeStatus((st) => {
+      setWsStatus(st);
+    });
+    return unsub;
+  }, []);
 
   return (
     <header className="h-10 xl:h-10 bg-[#0C1626] border-b border-[#1D3048] px-2.5 sm:px-3 flex items-center justify-between select-none sticky top-0 z-40">
@@ -18,25 +33,44 @@ export const Header: React.FC = () => {
             FINANCIAL TERMINAL
           </span>
           <span className="hidden sm:inline text-[9px] text-[#8191A8] font-mono px-1 py-0.5 bg-[#070D17] border border-[#1D3048] rounded">
-            FASE 01.1
+            ALICERCE RTD
           </span>
         </div>
 
-        {/* Tag Demonstração */}
-        <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded bg-[#FF4D5A]/10 border border-[#FF4D5A]/30">
-          <Activity className="w-2.5 h-2.5 text-[#FF4D5A]" />
-          <span className="text-[9px] sm:text-[10px] font-semibold text-[#FF4D5A] tracking-tight">
-            <span className="inline sm:hidden">DEMO</span>
-            <span className="hidden sm:inline">MODO DEMONSTRAÇÃO — DADOS SIMULADOS</span>
-          </span>
+        {/* Status Realtime Conector Windows & WebSocket */}
+        <div className="flex items-center space-x-1.5">
+          {wsStatus.connected ? (
+            <div className={`flex items-center space-x-1 px-1.5 py-0.5 rounded text-[9px] font-mono border ${
+              wsStatus.connectorOnline 
+                ? 'bg-[#21D787]/10 text-[#21D787] border-[#21D787]/30' 
+                : 'bg-[#F3C65A]/10 text-[#F3C65A] border-[#F3C65A]/30'
+            }`}>
+              <Radio className="w-2.5 h-2.5 animate-pulse" />
+              <span>
+                {wsStatus.connectorOnline ? 'EXCEL RTD CONECTADO' : 'AGUARDANDO CONECTOR EXCEL'}
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#070D17] text-[#8191A8] border border-[#1D3048]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#8191A8]" />
+              <span>MODO LOCAL / DEMO</span>
+            </div>
+          )}
+
+          {/* Aviso de Dados Obsoletos (Stale Data Warning) */}
+          {wsStatus.isStale && (
+            <div className="flex items-center space-x-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-[#FF4D5A]/10 text-[#FF4D5A] border border-[#FF4D5A]/40 animate-pulse">
+              <AlertTriangle className="w-2.5 h-2.5 text-[#FF4D5A]" />
+              <span className="hidden sm:inline">DADOS DESATUALIZADOS</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Direita: Horário e Controles */}
       <div className="flex items-center space-x-1.5 sm:space-x-2">
-        {/* Horário da última atualização */}
         <div className="flex items-center space-x-1 text-[10px] font-mono text-[#8191A8] bg-[#070D17] px-1.5 py-0.5 rounded border border-[#1D3048]">
-          <span className="hidden xs:inline text-[9px] text-[#8191A8]">ATUALIZADO:</span>
+          <span className="hidden xs:inline text-[9px] text-[#8191A8]">HORA:</span>
           <span className="text-[#F0F4FA] font-bold">{lastUpdate}</span>
         </div>
 

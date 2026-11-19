@@ -1,0 +1,14 @@
+{
+  "name": "alicerce-realtime-server",
+  "version": "1.0.0",
+  "description": "Servidor WebSocket em memoria RAM para sincronizacao em tempo real Excel RTD -> Dashboard",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "dotenv": "^16.4.7"
+  }
+}

@@ -1,10 +1,7 @@
 # excel-rtd-connector/connector/tray_app.py
 """
 Aplicação de Bandeja do Sistema (Windows System Tray Icon).
-Permite que o conector rode discretamente em segundo plano:
-- Ícone na bandeja com indicador visual
-- Menu de contexto (Abrir Painel, Ver Logs, Iniciar com Windows, Sair)
-- Não fecha o monitoramento ao fechar a janela
+Orquestra o PollingEngine local com o RealtimeClient WebSocket.
 """
 import os
 import sys
@@ -38,13 +35,17 @@ def create_tray_icon_image(color: str = "#21D787") -> Image.Image:
 
 
 class TrayApplication:
-    """Orquestrador completo: PollingEngine + StatusWindow + TrayIcon."""
+    """Orquestrador completo: PollingEngine + RealtimeClient + StatusWindow + TrayIcon."""
 
     def __init__(self, settings: ConnectorSettings):
         self.settings = settings
-        self.realtime_client = RealtimeClient()
+        self.realtime_client = RealtimeClient(
+            server_url=settings.server_url,
+            token=settings.server_token
+        )
         self.window: Optional[StatusWindow] = None
         self.tray_icon: Optional[pystray.Icon] = None
+        self._sent_initial_snapshot = False
 
         # Callbacks do PollingEngine
         self.engine = PollingEngine(
@@ -54,13 +55,25 @@ class TrayApplication:
         )
 
     def _on_market_change(self, changes):
-        # Envia deltas para a fila do cliente realtime
+        # Envia deltas diretamente via WebSocket
         self.realtime_client.enqueue_changes(changes)
 
     def _on_polling_tick(self, latest_values, diag):
+        # Envia snapshot inicial de células na primeira leitura bem sucedida
+        if not self._sent_initial_snapshot and latest_values:
+            cells_dict = {k: v.normalized_value for k, v in latest_values.items()}
+            self.realtime_client.send_snapshot({
+                "workbook": self.settings.workbook,
+                "worksheet": self.settings.worksheet,
+                "cells": cells_dict
+            })
+            self._sent_initial_snapshot = True
+
         if self.window:
             sys_metrics = diag.get_system_metrics()
             rt_status = self.realtime_client.get_status()
+
+            server_disp = "CONECTADO (WSS)" if rt_status["server_connected"] else "CONECTANDO..."
 
             payload = {
                 "is_connected": self.engine.connection.is_alive(),
@@ -69,7 +82,7 @@ class TrayApplication:
                 "cells_count": len(self.settings.cells) + len(self.settings.ranges),
                 "last_read": diag.last_read_duration_ms > 0 and diag.last_read_duration_ms or 0,
                 "latency_ms": diag.avg_read_duration_ms or diag.last_read_duration_ms,
-                "realtime_status": f"Buffer: {rt_status['buffered_changes']} deltas",
+                "realtime_status": f"{server_disp} ({rt_status['buffered_changes']} deltas)",
                 "cpu_pct": sys_metrics["cpu_percent"],
                 "ram_mb": sys_metrics["memory_mb"]
             }
@@ -96,6 +109,7 @@ class TrayApplication:
         """Encerra a aplicação com segurança."""
         logger.info("Encerrando aplicativo via bandeja...")
         self.engine.stop()
+        self.realtime_client.stop()
         if self.tray_icon:
             self.tray_icon.stop()
         if self.window:
@@ -103,7 +117,8 @@ class TrayApplication:
         sys.exit(0)
 
     def run(self, start_minimized: bool = False):
-        """Inicia o conector e o ícone de bandeja."""
+        """Inicia o conector, o cliente realtime e o ícone de bandeja."""
+        self.realtime_client.start()
         self.engine.start()
 
         # Cria a janela CustomTkinter na thread principal
@@ -128,11 +143,9 @@ class TrayApplication:
         icon_img = create_tray_icon_image("#21D787")
         self.tray_icon = pystray.Icon("AlicerceRTD", icon_img, "Alicerce — Conector Excel RTD", menu)
 
-        # Roda o ícone de bandeja em thread dedicada
         tray_thread = threading.Thread(target=self.tray_icon.run, daemon=True)
         tray_thread.start()
 
-        # Roda o loop da GUI na thread principal
         try:
             self.window.mainloop()
         except KeyboardInterrupt:

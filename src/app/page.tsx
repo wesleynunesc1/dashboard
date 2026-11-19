@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { marketService } from '@/services/MockMarketDataProvider';
+import { realtimeService } from '@/services/WebSocketMarketDataProvider';
 import { useMarketStore } from '@/store/useMarketStore';
 import { Header } from '@/components/dashboard/Header';
 import { DolarColumn } from '@/components/dashboard/DolarColumn';
@@ -18,17 +18,17 @@ export default function Home() {
   const { snapshot, setSnapshot, mobileTab } = useMarketStore();
 
   useEffect(() => {
-    // Conectar ao MarketDataProvider
-    marketService.connect();
+    // Conectar ao provedor de dados Realtime WebSocket
+    realtimeService.connect();
 
-    // Inscrever para atualizações a cada 1s
-    const unsubscribe = marketService.subscribe((newSnapshot) => {
+    // Inscrever para receber atualizações do mercado
+    const unsubscribe = realtimeService.subscribe((newSnapshot) => {
       setSnapshot(newSnapshot);
     });
 
     return () => {
       unsubscribe();
-      marketService.disconnect();
+      realtimeService.disconnect();
     };
   }, [setSnapshot]);
 
@@ -37,7 +37,7 @@ export default function Home() {
       <div className="flex items-center justify-center min-h-screen bg-[#070D17] text-[#8191A8] font-mono text-sm">
         <div className="flex flex-col items-center space-y-2">
           <div className="w-6 h-6 border-2 border-[#21D787] border-t-transparent rounded-full animate-spin" />
-          <span>INICIALIZANDO TERMINAL FINANCEIRO...</span>
+          <span>CONECTANDO AO TERMINAL FINANCEIRO REALTIME...</span>
         </div>
       </div>
     );
@@ -50,7 +50,7 @@ export default function Home() {
 
       {/* ÁREA PRINCIPAL */}
       <main className="flex-1 w-full max-w-[1920px] mx-auto p-1.5 sm:p-2 overflow-x-hidden space-y-1.5">
-        {/* BLOCO DE ANÁLISE TOTAL E DIREÇÃO DE MERCADO (DESKTOP E MOBILE) */}
+        {/* BLOCO DE ANÁLISE TOTAL E DIREÇÃO DE MERCADO */}
         <MacroAnalysisPanel snapshot={snapshot} />
 
         {/* ============================================================== */}
@@ -94,14 +94,13 @@ export default function Home() {
       {/* FOOTER INFORMATIVO DESKTOP */}
       <footer className="hidden xl:flex h-6 bg-[#0C1626] border-t border-[#1D3048] px-3 items-center justify-between text-[9px] font-mono text-[#8191A8] select-none">
         <div className="flex items-center space-x-3">
-          <span>LATÊNCIA: &lt; 12ms</span>
-          <span>FEED: B3 RTD/FAST</span>
+          <span>FEED: PROFIT PRO RTD → WEBSOCKET RAM</span>
+          <span>ARQUITETURA: ZERO DATABASE</span>
           <span>CONTRATO ATIVO: WINZ26 | WDOF27</span>
           <span>BOOK: TOP 15 PROFUNDIDADE</span>
-          <span>MOTOR DE ANÁLISE: MACRO MATRIX</span>
         </div>
         <div>
-          <span>FASE 01 CONCLUÍDA — PRONTO PARA INTEGRAÇÃO COM EXCEL / PYTHON NA FASE 02</span>
+          <span>ALICERCE FINANCIAL TERMINAL — SINCRONIZAÇÃO EM TEMPO REAL ATIVA</span>
         </div>
       </footer>
     </div>

@@ -54,3 +54,7 @@ excel-rtd-connector/.pytest_cache/
 excel-rtd-connector/build/
 excel-rtd-connector/dist/
 
+
+realtime-server/node_modules/
+realtime-server/.env
+

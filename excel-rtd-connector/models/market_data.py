@@ -31,6 +31,8 @@ class ConnectorSettings(BaseModel):
     workbook: str = ""
     worksheet: str = ""
     polling_interval_ms: int = 250
+    server_url: str = "ws://localhost:8080"
+    server_token: str = "alicerce_rtd_secret_token_2026"
     cells: Dict[str, str] = Field(default_factory=dict)
     ranges: Dict[str, str] = Field(default_factory=dict)
     tolerance: float = 1e-6

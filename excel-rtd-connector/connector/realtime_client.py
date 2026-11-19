@@ -1,55 +1,146 @@
 # excel-rtd-connector/connector/realtime_client.py
 """
-Módulo de Transmissão Futura para o Serviço Realtime (Next.js / Vercel).
-Implementa fila limitada de deltas, proteção contra duplicidades,
-identificação de mensagens e reconexão automática segura sem travar o Excel.
+Cliente WebSocket Autenticado de Alta Velocidade.
+Transmite dados do Excel RTD para o servidor WebSocket em tempo real.
+- Conecta com segurança via WSS / WS
+- Autenticação de dispositivo
+- Envia snapshot inicial e somente deltas posteriores
+- Reconexão automática resiliente sem travar o Excel COM
+- Heartbeat contínuo
 """
 import time
+import json
 import logging
 import threading
 from typing import List, Dict, Any, Optional
 from collections import deque
 from datetime import datetime
 
+import websocket
+
 logger = logging.getLogger("excel_connector.realtime")
 
 
-class RealtimePayload:
-    """Estrutura segura de pacote para envio HTTPS/WebSocket."""
-    def __init__(self, message_id: str, timestamp: float, changes: List[Dict[str, Any]]):
-        self.message_id = message_id
-        self.timestamp = timestamp
-        self.changes = changes
-
-
 class RealtimeClient:
-    """
-    Cliente modular de sincronização em tempo real.
-    Nesta etapa:
-    - Opera em modo 'STAGING / ARMAZENAMENTO EM BUFFER'
-    - Não abre conexões externas reais até que a URL e o token seguro sejam definidos
-    - Garante ausência de perda de dados e ordenação de deltas
-    """
+    """Cliente WebSocket thread-safe para envio dos dados RTD."""
 
-    def __init__(self, max_buffer_size: int = 500):
+    def __init__(
+        self,
+        server_url: str = "ws://localhost:8080",
+        token: str = "alicerce_rtd_secret_token_2026",
+        max_buffer_size: int = 1000
+    ):
+        self.server_url = server_url
+        self.token = token
         self.max_buffer_size = max_buffer_size
-        self._queue: deque[Dict[str, Any]] = deque(maxlen=max_buffer_size)
-        self._is_connected_to_server = False
-        self._last_sync_time: Optional[datetime] = None
-        self._server_url: Optional[str] = None
-        self._sequence_id: int = 0
-        self._lock = threading.Lock()
 
-    def set_endpoint(self, url: str, token: Optional[str] = None):
-        """Define o endpoint HTTPS do servidor realtime (Fase 2)."""
-        self._server_url = url
-        logger.info(f"Endpoint realtime configurado: {url}")
+        self._ws: Optional[websocket.WebSocketApp] = None
+        self._is_connected = False
+        self._is_authenticated = False
+        self._running = False
+        self._thread: Optional[threading.Thread] = None
+
+        self._queue: deque[Dict[str, Any]] = deque(maxlen=max_buffer_size)
+        self._sequence_id = 0
+        self._lock = threading.Lock()
+        self._has_sent_initial_snapshot = False
+        self._last_snapshot_cache: Optional[Dict[str, Any]] = None
+
+    def start(self):
+        """Inicia a thread de conexão e envio WebSocket."""
+        if self._running:
+            return
+        self._running = True
+        self._thread = threading.Thread(target=self._run_ws_loop, name="RealtimeWebSocketThread", daemon=True)
+        self._thread.start()
+        logger.info(f"Cliente Realtime iniciado para {self.server_url}")
+
+    def stop(self):
+        """Encerra a conexão WebSocket com segurança."""
+        self._running = False
+        if self._ws:
+            self._ws.close()
+        logger.info("Cliente Realtime encerrado.")
+
+    def _run_ws_loop(self):
+        """Loop de conexão persistente com reconexão automática."""
+        while self._running:
+            try:
+                self._ws = websocket.WebSocketApp(
+                    self.server_url,
+                    on_open=self._on_open,
+                    on_message=self._on_message,
+                    on_error=self._on_error,
+                    on_close=self._on_close
+                )
+                self._ws.run_forever(ping_interval=20, ping_timeout=10)
+            except Exception as e:
+                logger.debug(f"Tentativa de conexão falhou: {e}")
+
+            self._is_connected = False
+            self._is_authenticated = False
+            if self._running:
+                time.sleep(3.0)  # Aguarda 3 segundos antes de tentar reconectar
+
+    def _on_open(self, ws):
+        logger.info("Conectado ao servidor WebSocket. Autenticando dispositivo...")
+        self._is_connected = True
+        # Envia credencial de autenticação
+        auth_msg = {
+            "type": "AUTH",
+            "role": "publisher",
+            "token": self.token
+        }
+        ws.send(json.dumps(auth_msg))
+
+    def _on_message(self, ws, message):
+        try:
+            data = json.loads(message)
+            msg_type = data.get("type")
+
+            if msg_type == "AUTH_OK":
+                self._is_authenticated = True
+                logger.info("Dispositivo AUTENTICADO com sucesso no Servidor Realtime.")
+                # Se tínhamos um snapshot pendente, envia agora
+                if self._last_snapshot_cache:
+                    self.send_snapshot(self._last_snapshot_cache)
+            elif msg_type == "ERROR":
+                logger.warning(f"Aviso do Servidor Realtime: {data.get('message')}")
+        except Exception as e:
+            logger.debug(f"Erro ao processar mensagem do servidor: {e}")
+
+    def _on_error(self, ws, error):
+        logger.debug(f"Erro no socket: {error}")
+
+    def _on_close(self, ws, close_status_code, close_msg):
+        self._is_connected = False
+        self._is_authenticated = False
+        logger.info("Conexão WebSocket com o servidor encerrada.")
+
+    def send_snapshot(self, snapshot_dict: Dict[str, Any]):
+        """Transmite o snapshot completo para o servidor."""
+        self._last_snapshot_cache = snapshot_dict
+
+        if not self._is_connected or not self._is_authenticated or not self._ws:
+            return
+
+        try:
+            payload = {
+                "type": "SNAPSHOT",
+                "snapshot": snapshot_dict,
+                "timestamp": time.time()
+            }
+            self._ws.send(json.dumps(payload))
+            self._has_sent_initial_snapshot = True
+        except Exception as e:
+            logger.debug(f"Falha ao enviar snapshot: {e}")
 
     def enqueue_changes(self, changes: List[Any]):
-        """Adiciona alterações na fila de transmissão."""
+        """Enfileira e transmite deltas imediatamente via WebSocket."""
         if not changes:
             return
 
+        formatted_deltas = []
         with self._lock:
             for ch in changes:
                 self._sequence_id += 1
@@ -63,18 +154,25 @@ class RealtimeClient:
                     "timestamp": time.time()
                 }
                 self._queue.append(item)
+                formatted_deltas.append(item)
+
+        if self._is_connected and self._is_authenticated and self._ws:
+            try:
+                payload = {
+                    "type": "DELTAS",
+                    "deltas": formatted_deltas,
+                    "timestamp": time.time()
+                }
+                self._ws.send(json.dumps(payload))
+            except Exception as e:
+                logger.debug(f"Falha ao enviar deltas: {e}")
 
     def get_status(self) -> Dict[str, Any]:
-        """Retorna o status atual da transmissão em tempo real."""
+        """Estatísticas do cliente realtime."""
         with self._lock:
             return {
-                "server_connected": self._is_connected_to_server,
+                "server_connected": self._is_connected and self._is_authenticated,
                 "buffered_changes": len(self._queue),
                 "total_sequenced": self._sequence_id,
-                "last_sync": self._last_sync_time.strftime("%H:%M:%S") if self._last_sync_time else "Aguardando servidor",
-                "endpoint": self._server_url or "Pronto para Fase 2 (Offline Seguro)"
+                "endpoint": self.server_url
             }
-
-    def clear(self):
-        with self._lock:
-            self._queue.clear()
