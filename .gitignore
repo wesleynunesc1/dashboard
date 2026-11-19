@@ -58,3 +58,5 @@ excel-rtd-connector/dist/
 realtime-server/node_modules/
 realtime-server/.env
 
+
+excel-rtd-connector/config/settings.json
