@@ -34,21 +34,37 @@ logger = logging.getLogger("main")
 
 
 def load_settings(path: str = "config/settings.json") -> ConnectorSettings:
-    """Carrega as configurações locais ou cria a partir do exemplo."""
+    """Carrega as configurações locais ou cria a partir do exemplo, com suporte a Windows Credential Manager."""
     config_path = os.path.join(os.path.dirname(__file__), path)
     example_path = os.path.join(os.path.dirname(__file__), "config/settings.example.json")
 
-    if not os.path.exists(config_path) and os.path.exists(example_path):
-        with open(example_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return ConnectorSettings(**data)
+    settings = ConnectorSettings()
 
     if os.path.exists(config_path):
         with open(config_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        return ConnectorSettings(**data)
+        settings = ConnectorSettings(**data)
+    elif os.path.exists(example_path):
+        with open(example_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        settings = ConnectorSettings(**data)
 
-    return ConnectorSettings()
+    # 1. Tentar ler token prioritariamente do Windows Credential Manager / DPAPI
+    try:
+        import keyring
+        vault_token = keyring.get_password("AlicerceExcelConnector", "server_token")
+        if vault_token:
+            settings.server_token = vault_token
+            logger.info("Credencial carregada com sucesso do Windows Credential Manager (DPAPI).")
+    except Exception as e:
+        logger.debug(f"Keyring nao disponivel ou sem senha gravada: {e}")
+
+    # 2. Sobrescrever via variavel de ambiente caso definida
+    env_token = os.getenv("CONNECTOR_TOKEN")
+    if env_token:
+        settings.server_token = env_token
+
+    return settings
 
 
 def command_discover():

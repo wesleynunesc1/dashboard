@@ -38,7 +38,11 @@ export class WebSocketMarketDataProvider implements MarketDataProvider {
 
   private async fetchTemporaryToken(): Promise<string> {
     try {
-      const res = await fetch('/api/auth/ws-token');
+      const res = await fetch('/api/auth/ws-token', {
+        headers: {
+          'x-dashboard-key': 'alicerce_secure_session_token_2026'
+        }
+      });
       if (res.ok) {
         const data = await res.json();
         return data.token || '';
