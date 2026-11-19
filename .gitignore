@@ -60,3 +60,6 @@ realtime-server/.env
 
 
 excel-rtd-connector/config/settings.json
+
+AlicerceExcelConnector_Cliente/app/
+

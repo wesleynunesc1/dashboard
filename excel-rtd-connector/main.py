@@ -244,7 +244,10 @@ def command_gui(start_minimized: bool = False):
 def main():
     args = [arg.lower() for arg in sys.argv[1:]]
 
-    if "discover" in args:
+    if "diag" in args or "diagnostico" in args or "--test" in args:
+        from connector.diagnostic_tool import run_full_diagnostics
+        run_full_diagnostics()
+    elif "discover" in args:
         command_discover()
     elif "monitor" in args:
         command_monitor()
